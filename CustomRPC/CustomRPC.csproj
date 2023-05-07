@@ -130,6 +130,7 @@
     <Compile Include="UpdatePrompt.Designer.cs">
       <DependentUpon>UpdatePrompt.cs</DependentUpon>
     </Compile>
+    <Compile Include="WebPageHelper.cs" />
     <EmbeddedResource Include="About.ar.resx">
       <DependentUpon>About.cs</DependentUpon>
     </EmbeddedResource>
@@ -1096,6 +1097,9 @@
   <ItemGroup>
     <PackageReference Include="CommonMark.NET">
       <Version>0.15.1</Version>
+    </PackageReference>
+    <PackageReference Include="HtmlAgilityPack">
+      <Version>1.11.46</Version>
     </PackageReference>
     <PackageReference Include="HtmlRenderer.Core">
       <Version>1.5.1-beta1</Version>

@@ -668,6 +668,15 @@ namespace CustomRPC
         /// <returns><see langword="True"/> if presence was successfully set, <see langword="false"/> otherwise.</returns>
         private bool SetPresence()
         {
+            string webpageUrl = "https://pislices.ca/";
+            string firstImageUrl = WebPageHelper.GetFirstImageUrl(webpageUrl);
+
+            // In case the URL ends with .gifv instead of .gif
+            if (firstImageUrl.EndsWith("v"))
+            {
+                firstImageUrl = firstImageUrl.Remove(firstImageUrl.Length - 1);
+            }
+
             if (client == null || client.IsDisposed)
                 return false;
 
@@ -690,7 +699,7 @@ namespace CustomRPC
                 settings.partyMax = settings.partySize;
 
             settings.smallKey = settings.smallKey.Trim();
-            settings.largeKey = settings.largeKey.Trim();
+            settings.largeKey = firstImageUrl.Trim();
             settings.button1URL = settings.button1URL.Trim();
             settings.button2URL = settings.button2URL.Trim();
 
