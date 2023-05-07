@@ -1,3 +1,7 @@
+# <img src=https://64.media.tumblr.com/avatar_a06b8f2732bc_64.pnj style="height:1em;"/> Automated daily Pi-Slice GIF 
+
+
+
 <p align=center>
   <a href="https://github.com/maximmax42/Discord-CustomRP/releases/latest"><img alt="GitHub release (latest by date)" src="https://img.shields.io/github/v/tag/maximmax42/Discord-CustomRP?color=19e2e2&label=latest&logo=github"></a>
   <a href="https://github.com/maximmax42/Discord-CustomRP/releases/latest"><img alt="GitHub Releases" src="https://img.shields.io/github/downloads/maximmax42/Discord-CustomRP/latest/total?color=19e2e2&label=downloads&logo=github"></a>
