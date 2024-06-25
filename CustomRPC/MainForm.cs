@@ -18,6 +18,8 @@ using Application = System.Windows.Forms.Application;
 using Button = System.Windows.Forms.Button;
 using DButton = DiscordRPC.Button;
 using Timer = System.Timers.Timer;
+using HtmlAgilityPack;
+using System.Linq;
 
 namespace CustomRPC
 {
@@ -86,6 +88,7 @@ namespace CustomRPC
         /// Prevents some event handlers from executing while the app is loading.
         /// </summary>
         bool loading = true;
+
         /// <summary>
         /// Avoids recursion in <see cref="OnlyNumbers"/>.
         /// </summary>
@@ -98,10 +101,12 @@ namespace CustomRPC
         /// A timer for automatic restart on connection error. Currently set to 10 seconds.
         /// </summary>
         Timer restartTimer = new Timer(10 * 1000);
+
         /// <summary>
         /// Limit for the amount of restart tries.
         /// </summary>
         int restartAttempts = 30;
+
         /// <summary>
         /// Counter for restart attempts left.
         /// </summary>
@@ -116,6 +121,7 @@ namespace CustomRPC
         /// GitHub client used for fetching all the releases of the app.
         /// </summary>
         GitHubClient githubClient = new GitHubClient(new ProductHeaderValue("CustomRP"));
+
         /// <summary>
         /// Latest release of the app available for downloading.
         /// </summary>
@@ -125,6 +131,7 @@ namespace CustomRPC
         /// A DateTime object showing since what moment you can make an API request in <see cref="FetchAssets(object, EventArgs)"/>.
         /// </summary>
         DateTime nextAssetCheck = DateTime.Now;
+
         /// <summary>
         /// A string showing what application ID was checked last in <see cref="FetchAssets(object, EventArgs)"/>.
         /// </summary>
@@ -144,22 +151,38 @@ namespace CustomRPC
         /// <summary>
         /// Path to the autorun link file.
         /// </summary>
-        readonly string linkPath = Environment.GetFolderPath(Environment.SpecialFolder.Startup) + @"\CustomRP" + (Program.IsSecondInstance ? " 2" : "") + ".lnk";
+        readonly string linkPath =
+            Environment.GetFolderPath(Environment.SpecialFolder.Startup)
+            + @"\CustomRP"
+            + (Program.IsSecondInstance ? " 2" : "")
+            + ".lnk";
 
         /// <summary>
         /// Resource manager. Yes I know, very descriptive.
         /// </summary>
-        readonly System.ComponentModel.ComponentResourceManager res = new System.ComponentModel.ComponentResourceManager(typeof(MainForm));
+        readonly System.ComponentModel.ComponentResourceManager res =
+            new System.ComponentModel.ComponentResourceManager(typeof(MainForm));
 
         /// <summary>
         /// List of locales docs.customrp.xyz is translated to.
         /// </summary>
-        readonly List<string> translatedWikiLocales = new List<string> { "de", "es", "fi", "fr", "ko", "pl", "ro", "ru" };
+        readonly List<string> translatedWikiLocales = new List<string>
+        {
+            "de",
+            "es",
+            "fi",
+            "fr",
+            "ko",
+            "pl",
+            "ro",
+            "ru"
+        };
 
         /// <summary>
         /// Unicode character "No-Break Space" (" ").
         /// </summary>
         readonly string U00A0 = "\u00A0";
+
         /// <summary>
         /// Unicode character "Zero-Width Space" (invisible).
         /// </summary>
@@ -174,7 +197,12 @@ namespace CustomRPC
             InitializeComponent();
 
             // Populating language related menu items
-            Utils.LanguagesSetup(translatorsToolStripMenuItem, OpenPersonsPage, languageToolStripMenuItem, ChangeLanguage);
+            Utils.LanguagesSetup(
+                translatorsToolStripMenuItem,
+                OpenPersonsPage,
+                languageToolStripMenuItem,
+                ChangeLanguage
+            );
 
             // Populating supporters menu items
             Utils.SupportersSetup(supportersToolStripMenuItem, OpenPersonsPage);
@@ -228,25 +256,46 @@ namespace CustomRPC
             // Checks the needed timestamp radiobuttons because settings binding can't do that
             switch ((TimestampType)settings.timestamps)
             {
-                case TimestampType.None: radioButtonNone.Checked = true; break;
-                case TimestampType.SinceStartup: radioButtonStartTime.Checked = true; break;
-                case TimestampType.SincePresenceUpdate: radioButtonPresence.Checked = true; break;
-                case TimestampType.LocalTime: radioButtonLocalTime.Checked = true; break;
-                case TimestampType.Custom: radioButtonCustom.Checked = true; break;
+                case TimestampType.None:
+                    radioButtonNone.Checked = true;
+                    break;
+                case TimestampType.SinceStartup:
+                    radioButtonStartTime.Checked = true;
+                    break;
+                case TimestampType.SincePresenceUpdate:
+                    radioButtonPresence.Checked = true;
+                    break;
+                case TimestampType.LocalTime:
+                    radioButtonLocalTime.Checked = true;
+                    break;
+                case TimestampType.Custom:
+                    radioButtonCustom.Checked = true;
+                    break;
             }
 
             // Enable or disable the date and time picker depending on whether a custom timestamp setting is chosen
             dateTimePickerTimestamp.Enabled = radioButtonCustom.Checked;
 
             // Change the date and time picker's format according to system's culture
-            dateTimePickerTimestamp.CustomFormat = CultureInfo.CurrentCulture.DateTimeFormat.ShortDatePattern + " " + CultureInfo.CurrentCulture.DateTimeFormat.LongTimePattern;
+            dateTimePickerTimestamp.CustomFormat =
+                CultureInfo.CurrentCulture.DateTimeFormat.ShortDatePattern
+                + " "
+                + CultureInfo.CurrentCulture.DateTimeFormat.LongTimePattern;
 
             // If the app was launched for the first time (including since update), set the default time to current one
             if (settings.customTimestamp.CompareTo(new DateTime(1969, 1, 1, 0, 0, 0)) == 0)
                 settings.customTimestamp = DateTime.Now;
 
             // Change the earliest date user can choose according to user's timezone
-            dateTimePickerTimestamp.MinDate = new DateTime(2001, 9, 9, 1, 46, 40, DateTimeKind.Utc).ToLocalTime();
+            dateTimePickerTimestamp.MinDate = new DateTime(
+                2001,
+                9,
+                9,
+                1,
+                46,
+                40,
+                DateTimeKind.Utc
+            ).ToLocalTime();
 
             // Localize the header of the tooltip because Visual Studio can't do that for some reason
             toolTipInfo.ToolTipTitle = Strings.information;
@@ -292,7 +341,14 @@ namespace CustomRPC
             if (settings.firstStart)
             {
                 // Asking if the user wants the manual
-                var messageBox = MessageBox.Show(this, Strings.firstTimeRunText, Strings.firstTimeRun, MessageBoxButtons.YesNo, MessageBoxIcon.Information, MessageBoxDefaultButton.Button1);
+                var messageBox = MessageBox.Show(
+                    this,
+                    Strings.firstTimeRunText,
+                    Strings.firstTimeRun,
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Information,
+                    MessageBoxDefaultButton.Button1
+                );
 
                 if (messageBox == DialogResult.Yes)
                     // Opens the setup manual
@@ -302,15 +358,19 @@ namespace CustomRPC
                 Utils.SaveSettings();
             }
 
-            if (settings.id != "" && ((settings.changedLanguage && settings.wasConnected) || (settings.autoconnect && !settings.changedLanguage)))
+            if (
+                settings.id != ""
+                && (
+                    (settings.changedLanguage && settings.wasConnected)
+                    || (settings.autoconnect && !settings.changedLanguage)
+                )
+            )
                 Connect();
 
             CheckIfCrashed();
 
             if (settings.checkUpdates)
                 CheckForUpdates();
-
-            settings.changedLanguage = false;
         }
 
         /// <summary>
@@ -373,12 +433,18 @@ namespace CustomRPC
             if (settings.darkMode)
             {
                 ToolStripManager.Renderer = new DarkModeRenderer();
-                buttonConnect.FlatStyle = buttonDisconnect.FlatStyle = buttonUpdatePresence.FlatStyle = FlatStyle.Flat;
+                buttonConnect.FlatStyle =
+                    buttonDisconnect.FlatStyle =
+                    buttonUpdatePresence.FlatStyle =
+                        FlatStyle.Flat;
             }
             else
             {
                 ToolStripManager.Renderer = new LightModeRenderer();
-                buttonConnect.FlatStyle = buttonDisconnect.FlatStyle = buttonUpdatePresence.FlatStyle = FlatStyle.Standard;
+                buttonConnect.FlatStyle =
+                    buttonDisconnect.FlatStyle =
+                    buttonUpdatePresence.FlatStyle =
+                        FlatStyle.Standard;
             }
         }
 
@@ -426,14 +492,23 @@ namespace CustomRPC
             // Fetching all releases
             try
             {
-                releases = await githubClient.Repository.Release.GetAll("maximmax42", "Discord-CustomRP");
+                releases = await githubClient.Repository.Release.GetAll(
+                    "maximmax42",
+                    "Discord-CustomRP"
+                );
                 latestRelease = releases[0];
             }
             catch
             {
                 // If there's no internet or Github is down, do nothing, unless it's a user requested update check
                 if (manual)
-                    MessageBox.Show(this, Strings.errorNoInternet, Strings.error, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show(
+                        this,
+                        Strings.errorNoInternet,
+                        Strings.error,
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Error
+                    );
                 return;
             }
 
@@ -485,9 +560,10 @@ namespace CustomRPC
                 else if (messageBox == DialogResult.Ignore)
                 {
                     settings.ignoreVersion = latestStr;
-                    Analytics.TrackEvent("Ignored an update", new Dictionary<string, string> {
-                        { "Version", latestStr }
-                    });
+                    Analytics.TrackEvent(
+                        "Ignored an update",
+                        new Dictionary<string, string> { { "Version", latestStr } }
+                    );
                 }
 
                 checkUpdatesToolStripMenuItem.Checked = settings.checkUpdates;
@@ -496,7 +572,14 @@ namespace CustomRPC
                     downloadUpdateToolStripMenuItem.Visible = false; // If user doesn't want update notifications, let's not bother them
             }
             else if (manual) // If there's no update available and it was a user initiated update check, notify them about it
-                MessageBox.Show(this, Strings.noUpdatesFound, Strings.information, MessageBoxButtons.OK, MessageBoxIcon.Information, MessageBoxDefaultButton.Button1);
+                MessageBox.Show(
+                    this,
+                    Strings.noUpdatesFound,
+                    Strings.information,
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information,
+                    MessageBoxDefaultButton.Button1
+                );
         }
 
         /// <summary>
@@ -520,7 +603,10 @@ namespace CustomRPC
                 try
                 {
                     if (!File.Exists(exec))
-                        await wc.DownloadFileTaskAsync(latestRelease.Assets[fileType].BrowserDownloadUrl, exec);
+                        await wc.DownloadFileTaskAsync(
+                            latestRelease.Assets[fileType].BrowserDownloadUrl,
+                            exec
+                        );
 
                     if (fileType == 1) // Open up app's folder for ease of manual update
                         Process.Start(Application.StartupPath);
@@ -537,11 +623,16 @@ namespace CustomRPC
                         if (File.Exists(exec))
                             File.Delete(exec);
                     }
-                    catch
-                    {
-                    }
+                    catch { }
 
-                    var result = MessageBox.Show(this, Strings.errorUpdateFailed, Strings.error, MessageBoxButtons.YesNoCancel, MessageBoxIcon.Error, MessageBoxDefaultButton.Button1);
+                    var result = MessageBox.Show(
+                        this,
+                        Strings.errorUpdateFailed,
+                        Strings.error,
+                        MessageBoxButtons.YesNoCancel,
+                        MessageBoxIcon.Error,
+                        MessageBoxDefaultButton.Button1
+                    );
 
                     if (result == DialogResult.Yes)
                         continue;
@@ -549,7 +640,9 @@ namespace CustomRPC
                         Process.Start(latestRelease.Assets[fileType].BrowserDownloadUrl);
 
                     downloadUpdateToolStripMenuItem.Enabled = true;
-                    downloadUpdateToolStripMenuItem.Text = res.GetString("downloadUpdateToolStripMenuItem.Text");
+                    downloadUpdateToolStripMenuItem.Text = res.GetString(
+                        "downloadUpdateToolStripMenuItem.Text"
+                    );
 
                     break;
                 }
@@ -572,7 +665,13 @@ namespace CustomRPC
         {
             if (settings.id == "")
             {
-                MessageBox.Show(Strings.errorNoID, Strings.error, MessageBoxButtons.OK, MessageBoxIcon.Error, MessageBoxDefaultButton.Button1);
+                MessageBox.Show(
+                    Strings.errorNoID,
+                    Strings.error,
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error,
+                    MessageBoxDefaultButton.Button1
+                );
                 return false;
             }
 
@@ -600,20 +699,26 @@ namespace CustomRPC
 
             ConnectionManager.State = ConnectionType.Connected;
 
-            Invoke(new MethodInvoker(() =>
-            {
-                textBoxID.BackColor = CurrentColors.BgTextFieldsSuccess;
-                toolStripStatusLabelStatus.Text = Strings.statusConnected;
-            }));
+            Invoke(
+                new MethodInvoker(() =>
+                {
+                    textBoxID.BackColor = CurrentColors.BgTextFieldsSuccess;
+                    toolStripStatusLabelStatus.Text = Strings.statusConnected;
+                })
+            );
 
             // This only tracks whether or not the presence has those parameters set, not their content
-            Analytics.TrackEvent("Updated presence", new Dictionary<string, string> {
-                { "Party", presence.HasParty().ToString() },
-                { "Timestamp", ((TimestampType)settings.timestamps).ToString() },
-                { "Big image", presence.Assets.LargeImageID.HasValue.ToString() },
-                { "Small image", presence.Assets.SmallImageID.HasValue.ToString() },
-                { "Buttons", buttonsList.Count.ToString() }
-            });
+            Analytics.TrackEvent(
+                "Updated presence",
+                new Dictionary<string, string>
+                {
+                    { "Party", presence.HasParty().ToString() },
+                    { "Timestamp", ((TimestampType)settings.timestamps).ToString() },
+                    { "Big image", presence.Assets.LargeImageID.HasValue.ToString() },
+                    { "Small image", presence.Assets.SmallImageID.HasValue.ToString() },
+                    { "Buttons", buttonsList.Count.ToString() }
+                }
+            );
 
             restartTimer.Stop();
         }
@@ -625,14 +730,16 @@ namespace CustomRPC
         {
             ConnectionManager.State = ConnectionType.Error;
 
-            Invoke(new MethodInvoker(() =>
-            {
-                if (buttonConnect.Enabled) // Ignore if the user disconnected before connection was established
-                    return;
+            Invoke(
+                new MethodInvoker(() =>
+                {
+                    if (buttonConnect.Enabled) // Ignore if the user disconnected before connection was established
+                        return;
 
-                textBoxID.BackColor = CurrentColors.BgTextFieldsError;
-                toolStripStatusLabelStatus.Text = Strings.statusError;
-            }));
+                    textBoxID.BackColor = CurrentColors.BgTextFieldsError;
+                    toolStripStatusLabelStatus.Text = Strings.statusError;
+                })
+            );
 
             if (ConnectionManager.HasChanged()) // Ignore repeated calls caused by auto reconnect
                 Analytics.TrackEvent("Connection error");
@@ -643,18 +750,23 @@ namespace CustomRPC
         /// <summary>
         /// Will be called if failed connecting (mostly due to Discord being closed).
         /// </summary>
-        private void ClientOnConnFailed(object sender, DiscordRPC.Message.ConnectionFailedMessage args)
+        private void ClientOnConnFailed(
+            object sender,
+            DiscordRPC.Message.ConnectionFailedMessage args
+        )
         {
             ConnectionManager.State = ConnectionType.Error;
 
-            Invoke(new MethodInvoker(() =>
-            {
-                if (buttonConnect.Enabled) // Ignore if the user disconnected before connection was established
-                    return;
+            Invoke(
+                new MethodInvoker(() =>
+                {
+                    if (buttonConnect.Enabled) // Ignore if the user disconnected before connection was established
+                        return;
 
-                textBoxID.BackColor = CurrentColors.BgTextFieldsError;
-                toolStripStatusLabelStatus.Text = Strings.statusConnectionFailed;
-            }));
+                    textBoxID.BackColor = CurrentColors.BgTextFieldsError;
+                    toolStripStatusLabelStatus.Text = Strings.statusConnectionFailed;
+                })
+            );
 
             if (ConnectionManager.HasChanged()) // Ignore repeated calls caused by auto reconnect
                 Analytics.TrackEvent("Connection failed");
@@ -669,13 +781,7 @@ namespace CustomRPC
         private bool SetPresence()
         {
             string webpageUrl = "https://pislices.ca/";
-            string firstImageUrl = WebPageHelper.GetFirstImageUrl(webpageUrl);
-
-            // In case the URL ends with .gifv instead of .gif
-            if (firstImageUrl.EndsWith("v"))
-            {
-                firstImageUrl = firstImageUrl.Remove(firstImageUrl.Length - 1);
-            }
+            string firstImageUrl = GetValidImageUrl(webpageUrl);
 
             if (client == null || client.IsDisposed)
                 return false;
@@ -684,11 +790,17 @@ namespace CustomRPC
             foreach (var paramBox in new[] { textBoxDetails, textBoxState })
             {
                 // U200B is 3 bytes long, so we need to make sure it will fit
-                if (paramBox.Text.StartsWith(U00A0) && StringTools.WithinLength(paramBox.Text, paramBox.MaxLength - 3))
+                if (
+                    paramBox.Text.StartsWith(U00A0)
+                    && StringTools.WithinLength(paramBox.Text, paramBox.MaxLength - 3)
+                )
                     paramBox.Text = paramBox.Text.Insert(0, U200B);
                 // In case it doesn't fit but there's at least 2 space symbols, we can replace one of them with the zws
                 // U00A0 is 2 bytes, so that means it'll still require one additional byte
-                else if (paramBox.Text.StartsWith(U00A0 + U00A0) && StringTools.WithinLength(paramBox.Text, paramBox.MaxLength - 1))
+                else if (
+                    paramBox.Text.StartsWith(U00A0 + U00A0)
+                    && StringTools.WithinLength(paramBox.Text, paramBox.MaxLength - 1)
+                )
                     paramBox.Text = U200B + paramBox.Text.Substring(1);
                 // In case it still doesn't fit but there's at least 3 space symbols, we replace first 2 with zws
                 else if (paramBox.Text.StartsWith(U00A0 + U00A0 + U00A0))
@@ -736,14 +848,29 @@ namespace CustomRPC
                 // Is there a way to not write this code twice? I don't think so since strings are immutable.
 
                 if (rp.Assets.SmallImageKey != null)
-                    rp.Assets.SmallImageKey = Regex.Replace(rp.Assets.SmallImageKey, "//((cdn)|(media))\\.discordapp\\.((com)|(net))/", "//customrp.xyz/proxy/");
+                    rp.Assets.SmallImageKey = Regex.Replace(
+                        rp.Assets.SmallImageKey,
+                        "//((cdn)|(media))\\.discordapp\\.((com)|(net))/",
+                        "//customrp.xyz/proxy/"
+                    );
 
                 if (rp.Assets.LargeImageKey != null)
-                    rp.Assets.LargeImageKey = Regex.Replace(rp.Assets.LargeImageKey, "//((cdn)|(media))\\.discordapp\\.((com)|(net))/", "//customrp.xyz/proxy/"); ;
+                    rp.Assets.LargeImageKey = Regex.Replace(
+                        rp.Assets.LargeImageKey,
+                        "//((cdn)|(media))\\.discordapp\\.((com)|(net))/",
+                        "//customrp.xyz/proxy/"
+                    );
+                ;
             }
             catch
             {
-                MessageBox.Show(Strings.errorInvalidImageURL, Strings.error, MessageBoxButtons.OK, MessageBoxIcon.Error, MessageBoxDefaultButton.Button1);
+                MessageBox.Show(
+                    Strings.errorInvalidImageURL,
+                    Strings.error,
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error,
+                    MessageBoxDefaultButton.Button1
+                );
                 return false;
             }
             finally
@@ -754,10 +881,16 @@ namespace CustomRPC
             buttonsList.Clear();
 
             if (!settings.button1URL.Contains("://"))
-                settings.button1URL = ("https://" + settings.button1URL).Substring(0, Math.Min(textBoxButton1URL.MaxLength, settings.button1URL.Length));
+                settings.button1URL = ("https://" + settings.button1URL).Substring(
+                    0,
+                    Math.Min(textBoxButton1URL.MaxLength, settings.button1URL.Length)
+                );
 
             if (!settings.button2URL.Contains("://"))
-                settings.button2URL = ("https://" + settings.button2URL).Substring(0, Math.Min(textBoxButton2URL.MaxLength, settings.button2URL.Length));
+                settings.button2URL = ("https://" + settings.button2URL).Substring(
+                    0,
+                    Math.Min(textBoxButton2URL.MaxLength, settings.button2URL.Length)
+                );
 
             try
             {
@@ -770,22 +903,24 @@ namespace CustomRPC
                 Utils.SaveSettings();
 
                 if (settings.button1Text != "" && settings.button1URL != "")
-                    buttonsList.Add(new DButton()
-                    {
-                        Label = settings.button1Text,
-                        Url = settings.button1URL
-                    });
+                    buttonsList.Add(
+                        new DButton() { Label = settings.button1Text, Url = settings.button1URL }
+                    );
 
                 if (settings.button2Text != "" && settings.button2URL != "")
-                    buttonsList.Add(new DButton()
-                    {
-                        Label = settings.button2Text,
-                        Url = settings.button2URL
-                    });
+                    buttonsList.Add(
+                        new DButton() { Label = settings.button2Text, Url = settings.button2URL }
+                    );
             }
             catch
             {
-                MessageBox.Show(Strings.errorInvalidURL, Strings.error, MessageBoxButtons.OK, MessageBoxIcon.Error, MessageBoxDefaultButton.Button1);
+                MessageBox.Show(
+                    Strings.errorInvalidURL,
+                    Strings.error,
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error,
+                    MessageBoxDefaultButton.Button1
+                );
                 return false;
             }
             finally
@@ -797,13 +932,31 @@ namespace CustomRPC
 
             switch ((TimestampType)settings.timestamps)
             {
-                case TimestampType.None: break;
-                case TimestampType.SinceStartup: rp.Timestamps = new Timestamps(timestampStarted); break;
-                case TimestampType.SincePresenceUpdate: rp.Timestamps = new Timestamps(DateTime.UtcNow); break;
-                case TimestampType.LocalTime: rp.Timestamps = new Timestamps(DateTime.UtcNow.Subtract(new TimeSpan(DateTime.Now.Hour, DateTime.Now.Minute, DateTime.Now.Second))); break;
+                case TimestampType.None:
+                    break;
+                case TimestampType.SinceStartup:
+                    rp.Timestamps = new Timestamps(timestampStarted);
+                    break;
+                case TimestampType.SincePresenceUpdate:
+                    rp.Timestamps = new Timestamps(DateTime.UtcNow);
+                    break;
+                case TimestampType.LocalTime:
+                    rp.Timestamps = new Timestamps(
+                        DateTime.UtcNow.Subtract(
+                            new TimeSpan(
+                                DateTime.Now.Hour,
+                                DateTime.Now.Minute,
+                                DateTime.Now.Second
+                            )
+                        )
+                    );
+                    break;
                 case TimestampType.Custom:
                     DateTime customTimestamp = dateTimePickerTimestamp.Value.ToUniversalTime();
-                    rp.Timestamps = customTimestamp.CompareTo(DateTime.UtcNow) < 0 ? new Timestamps(customTimestamp) : new Timestamps(DateTime.UtcNow, customTimestamp);
+                    rp.Timestamps =
+                        customTimestamp.CompareTo(DateTime.UtcNow) < 0
+                            ? new Timestamps(customTimestamp)
+                            : new Timestamps(DateTime.UtcNow, customTimestamp);
                     break;
             }
 
@@ -822,7 +975,8 @@ namespace CustomRPC
                 if (settings.runOnStartup && !File.Exists(linkPath)) // If run on startup is enabled and the link isn't in the Startup folder
                 {
                     IWshRuntimeLibrary.WshShell wsh = new IWshRuntimeLibrary.WshShell();
-                    IWshRuntimeLibrary.IWshShortcut shortcut = wsh.CreateShortcut(linkPath) as IWshRuntimeLibrary.IWshShortcut;
+                    IWshRuntimeLibrary.IWshShortcut shortcut =
+                        wsh.CreateShortcut(linkPath) as IWshRuntimeLibrary.IWshShortcut;
                     shortcut.Description = "Discord Custom Rich Presence Manager";
                     shortcut.TargetPath = Environment.CurrentDirectory + @"\CustomRP.exe";
                     shortcut.WorkingDirectory = Environment.CurrentDirectory + @"\";
@@ -838,7 +992,12 @@ namespace CustomRPC
                 // I *think* this would only happen if an antivirus would intervene saving/deleting a file in a user folder,
                 // therefore I'm just allowing the user to quickly try changing the option again
                 runOnStartupToolStripMenuItem.Checked = !settings.runOnStartup;
-                MessageBox.Show($"{Strings.errorStartupShortcut} {e.Message}", Strings.error, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(
+                    $"{Strings.errorStartupShortcut} {e.Message}",
+                    Strings.error,
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error
+                );
             }
         }
 
@@ -875,7 +1034,7 @@ namespace CustomRPC
 
                 if (!(settings.startMinimized || settings.wasTooltipShown))
                 {
-                    // Show a tooltip if it wasn't shown already and if the app doesn't start minimized 
+                    // Show a tooltip if it wasn't shown already and if the app doesn't start minimized
                     trayIcon.ShowBalloonTip(500);
                     settings.wasTooltipShown = true;
                 }
@@ -949,11 +1108,21 @@ namespace CustomRPC
 
                 switch ((TimestampType)settings.timestamps)
                 {
-                    case TimestampType.None: radioButtonNone.Checked = true; break;
-                    case TimestampType.SinceStartup: radioButtonStartTime.Checked = true; break;
-                    case TimestampType.SincePresenceUpdate: radioButtonPresence.Checked = true; break;
-                    case TimestampType.LocalTime: radioButtonLocalTime.Checked = true; break;
-                    case TimestampType.Custom: radioButtonCustom.Checked = true; break;
+                    case TimestampType.None:
+                        radioButtonNone.Checked = true;
+                        break;
+                    case TimestampType.SinceStartup:
+                        radioButtonStartTime.Checked = true;
+                        break;
+                    case TimestampType.SincePresenceUpdate:
+                        radioButtonPresence.Checked = true;
+                        break;
+                    case TimestampType.LocalTime:
+                        radioButtonLocalTime.Checked = true;
+                        break;
+                    case TimestampType.Custom:
+                        radioButtonCustom.Checked = true;
+                        break;
                 }
 
                 Analytics.TrackEvent("Loaded a preset");
@@ -968,7 +1137,12 @@ namespace CustomRPC
             }
             catch
             {
-                MessageBox.Show(Strings.errorInvalidPresetFile, Strings.error, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(
+                    Strings.errorInvalidPresetFile,
+                    Strings.error,
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error
+                );
             }
 
             file.Close();
@@ -979,10 +1153,7 @@ namespace CustomRPC
         /// </summary>
         private void LoadPreset(object sender, EventArgs e)
         {
-            var presetFile = new OpenFileDialog()
-            {
-                Filter = "CustomRP Preset|*.crp"
-            };
+            var presetFile = new OpenFileDialog() { Filter = "CustomRP Preset|*.crp" };
 
             if (presetFile.ShowDialog() != DialogResult.OK)
                 return;
@@ -993,7 +1164,12 @@ namespace CustomRPC
             }
             catch
             {
-                MessageBox.Show(Strings.errorInvalidPresetFile, Strings.error, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(
+                    Strings.errorInvalidPresetFile,
+                    Strings.error,
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error
+                );
             }
         }
 
@@ -1009,7 +1185,12 @@ namespace CustomRPC
             }
             catch
             {
-                MessageBox.Show(Strings.errorInvalidPresetFile, Strings.error, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(
+                    Strings.errorInvalidPresetFile,
+                    Strings.error,
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error
+                );
             }
         }
 
@@ -1019,10 +1200,7 @@ namespace CustomRPC
         private void SavePreset(object sender, EventArgs e)
         {
             var xs = new XmlSerializer(typeof(Preset));
-            var presetFile = new SaveFileDialog()
-            {
-                Filter = "CustomRP Preset|*.crp"
-            };
+            var presetFile = new SaveFileDialog() { Filter = "CustomRP Preset|*.crp" };
 
             if (presetFile.ShowDialog() != DialogResult.OK || presetFile.FileNames.Length == 0)
                 return;
@@ -1033,24 +1211,27 @@ namespace CustomRPC
                 {
                     using (var file = presetFile.OpenFile())
                     {
-                        xs.Serialize(file, new Preset()
-                        {
-                            ID = settings.id,
-                            Details = settings.details,
-                            State = settings.state,
-                            PartySize = (int)settings.partySize,
-                            PartyMax = (int)settings.partyMax,
-                            Timestamps = settings.timestamps,
-                            CustomTimestamp = settings.customTimestamp,
-                            LargeKey = settings.largeKey,
-                            LargeText = settings.largeText,
-                            SmallKey = settings.smallKey,
-                            SmallText = settings.smallText,
-                            Button1Text = settings.button1Text,
-                            Button1URL = settings.button1URL,
-                            Button2Text = settings.button2Text,
-                            Button2URL = settings.button2URL,
-                        });
+                        xs.Serialize(
+                            file,
+                            new Preset()
+                            {
+                                ID = settings.id,
+                                Details = settings.details,
+                                State = settings.state,
+                                PartySize = (int)settings.partySize,
+                                PartyMax = (int)settings.partyMax,
+                                Timestamps = settings.timestamps,
+                                CustomTimestamp = settings.customTimestamp,
+                                LargeKey = settings.largeKey,
+                                LargeText = settings.largeText,
+                                SmallKey = settings.smallKey,
+                                SmallText = settings.smallText,
+                                Button1Text = settings.button1Text,
+                                Button1URL = settings.button1URL,
+                                Button2Text = settings.button2Text,
+                                Button2URL = settings.button2URL,
+                            }
+                        );
                     }
 
                     Analytics.TrackEvent("Saved a preset");
@@ -1059,7 +1240,14 @@ namespace CustomRPC
                 }
                 catch (IOException ex)
                 {
-                    if (MessageBox.Show(ex.Message, Strings.error, MessageBoxButtons.RetryCancel, MessageBoxIcon.Error) == DialogResult.Cancel)
+                    if (
+                        MessageBox.Show(
+                            ex.Message,
+                            Strings.error,
+                            MessageBoxButtons.RetryCancel,
+                            MessageBoxIcon.Error
+                        ) == DialogResult.Cancel
+                    )
                         return;
                 }
             }
@@ -1072,11 +1260,21 @@ namespace CustomRPC
         {
             if (settings.id == "")
             {
-                MessageBox.Show(Strings.errorNoID, Strings.error, MessageBoxButtons.OK, MessageBoxIcon.Error, MessageBoxDefaultButton.Button1);
+                MessageBox.Show(
+                    Strings.errorNoID,
+                    Strings.error,
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error,
+                    MessageBoxDefaultButton.Button1
+                );
                 return;
             }
 
-            Process.Start("https://discord.com/developers/applications/" + settings.id + "/rich-presence/assets");
+            Process.Start(
+                "https://discord.com/developers/applications/"
+                    + settings.id
+                    + "/rich-presence/assets"
+            );
         }
 
         /// <summary>
@@ -1184,10 +1382,10 @@ namespace CustomRPC
             if (personType == "supporter")
                 personName = personName.Replace(" - ", "|").Split('|')[0]; // Doing this replacement thing just in case someone will have "-" in their nickname
 
-            Analytics.TrackEvent("Clicked on a " + personType, new Dictionary<string, string> {
-                { "Name", personName },
-                { "URL", personUrl }
-            });
+            Analytics.TrackEvent(
+                "Clicked on a " + personType,
+                new Dictionary<string, string> { { "Name", personName }, { "URL", personUrl } }
+            );
 
             Process.Start(personUrl);
         }
@@ -1354,7 +1552,10 @@ namespace CustomRPC
 
             bool useBytes = box.Name.EndsWith("Button1Text") || box.Name.EndsWith("Button2Text");
 
-            if (box.Text.Length == 1 || useBytes && !StringTools.WithinLength(box.Text, box.MaxLength))
+            if (
+                box.Text.Length == 1
+                || useBytes && !StringTools.WithinLength(box.Text, box.MaxLength)
+            )
             {
                 e.Cancel = true;
                 System.Media.SystemSounds.Beep.Play();
@@ -1370,7 +1571,13 @@ namespace CustomRPC
 
             bool useBytes = box.Name.EndsWith("Button1Text") || box.Name.EndsWith("Button2Text");
 
-            box.BackColor = (box.Text.Length == 1 || useBytes && !StringTools.WithinLength(box.Text, box.MaxLength)) ? CurrentColors.BgTextFieldsError : CurrentColors.BgTextFields;
+            box.BackColor =
+                (
+                    box.Text.Length == 1
+                    || useBytes && !StringTools.WithinLength(box.Text, box.MaxLength)
+                )
+                    ? CurrentColors.BgTextFieldsError
+                    : CurrentColors.BgTextFields;
         }
 
         /// <summary>
@@ -1384,7 +1591,8 @@ namespace CustomRPC
             {
                 numericUpDownPartyMax.Value = numericUpDownPartySize.Value;
                 // If user sets max value less than current value, play error sound, but not if user sets current value more than max
-                if (sender == numericUpDownPartyMax) System.Media.SystemSounds.Beep.Play();
+                if (sender == numericUpDownPartyMax)
+                    System.Media.SystemSounds.Beep.Play();
             }
         }
 
@@ -1408,7 +1616,8 @@ namespace CustomRPC
             settings.timestamps = (int)btn.Tag;
             Utils.SaveSettings();
 
-            dateTimePickerTimestamp.Enabled = (TimestampType)settings.timestamps == TimestampType.Custom;
+            dateTimePickerTimestamp.Enabled =
+                (TimestampType)settings.timestamps == TimestampType.Custom;
         }
 
         /// <summary>
@@ -1416,7 +1625,10 @@ namespace CustomRPC
         /// </summary>
         private void FetchAssets(object sender, EventArgs e)
         {
-            if (settings.id == "" || (lastIDChecked == settings.id && nextAssetCheck.CompareTo(DateTime.Now) > 0))
+            if (
+                settings.id == ""
+                || (lastIDChecked == settings.id && nextAssetCheck.CompareTo(DateTime.Now) > 0)
+            )
                 return;
 
             lastIDChecked = settings.id;
@@ -1433,7 +1645,11 @@ namespace CustomRPC
                     ServicePointManager.Expect100Continue = true;
                     ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
 
-                    var res = client.GetAsync($"https://discordapp.com/api/oauth2/applications/{settings.id}/assets").Result;
+                    var res = client
+                        .GetAsync(
+                            $"https://discordapp.com/api/oauth2/applications/{settings.id}/assets"
+                        )
+                        .Result;
 
                     if (res.IsSuccessStatusCode)
                     {
@@ -1450,7 +1666,12 @@ namespace CustomRPC
                 }
                 catch
                 {
-                    MessageBox.Show(Strings.errorNoInternet, Strings.error, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show(
+                        Strings.errorNoInternet,
+                        Strings.error,
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Error
+                    );
                 }
             }
         }
@@ -1462,8 +1683,16 @@ namespace CustomRPC
         {
             Button btn = (Button)sender;
             btn.Text = string.Empty;
-            TextFormatFlags flags = TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter;
-            TextRenderer.DrawText(e.Graphics, res.GetString($"{btn.Name}.Text"), btn.Font, e.ClipRectangle, btn.Enabled ? btn.ForeColor : CurrentColors.TextInactive, flags);
+            TextFormatFlags flags =
+                TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter;
+            TextRenderer.DrawText(
+                e.Graphics,
+                res.GetString($"{btn.Name}.Text"),
+                btn.Font,
+                e.ClipRectangle,
+                btn.Enabled ? btn.ForeColor : CurrentColors.TextInactive,
+                flags
+            );
         }
 
         /// <summary>
@@ -1473,6 +1702,55 @@ namespace CustomRPC
         {
             Utils.SaveSettings();
             SetPresence();
+        }
+
+        /// <summary>
+        /// Retrieves the first valid image URL from a webpage.
+        /// </summary>
+        private string GetValidImageUrl(string url)
+        {
+            HttpClient client = new HttpClient();
+            string html = client.GetStringAsync(url).Result;
+
+            HtmlAgilityPack.HtmlDocument doc = new HtmlAgilityPack.HtmlDocument();
+            doc.LoadHtml(html);
+
+            var images = doc.DocumentNode
+                .Descendants("img")
+                .Select(img => img.GetAttributeValue("src", null))
+                .Where(src => !string.IsNullOrEmpty(src))
+                .ToList();
+
+            foreach (var imageUrl in images)
+            {
+                if (IsValidImage(imageUrl))
+                {
+                    return NormalizeGifvUrl(imageUrl);
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Checks if an image URL is valid based on its extension.
+        /// </summary>
+        private bool IsValidImage(string url)
+        {
+            string extension = System.IO.Path.GetExtension(url).ToLower();
+            return extension == ".gif" || extension == ".gifv";
+        }
+
+        /// <summary>
+        /// Normalizes a .gifv URL to a .gif URL.
+        /// </summary>
+        private string NormalizeGifvUrl(string url)
+        {
+            if (url.EndsWith("v"))
+            {
+                return url.Remove(url.Length - 1);
+            }
+            return url;
         }
     }
 }
